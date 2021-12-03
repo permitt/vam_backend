@@ -13,7 +13,6 @@ class MenuView(CustomAPIView):
     model = Menu
     serializer = MenuSerializer
 
-
     def get(self, request: Request, *args, **kwargs) -> Response:
         if 'id' in kwargs:
             return self.get_by_facility_id(kwargs['id'])
@@ -22,8 +21,8 @@ class MenuView(CustomAPIView):
 
     def get_by_facility_id(self, facility_id: int) -> Response:
         data: Menu = self.model.non_deleted_objects.filter(facility__pk=facility_id).first()
-        return Response(self.serializer(data).data, status=status.HTTP_200_OK) if data else Response(status=status.HTTP_400_BAD_REQUEST)
-
+        return Response(self.serializer(data).data, status=status.HTTP_200_OK) if data else Response(
+            status=status.HTTP_400_BAD_REQUEST)
 
     def get_all(self, request: Request) -> Response:
         data: QuerySet[Menu] = self.get_queryset().order_by('id').filter(
