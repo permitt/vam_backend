@@ -21,8 +21,9 @@ class MenuView(CustomAPIView):
             return self.get_all(request)
 
     def get_by_facility_id(self, facility_id: int) -> Response:
-        data: Menu = self.model.non_deleted_objects.get(facility_id=facility_id)
-        return Response(self.serializer(data).data, status=status.HTTP_200_OK)
+        data: Menu = self.model.non_deleted_objects.filter(facility__pk=facility_id).first()
+        return Response(self.serializer(data).data, status=status.HTTP_200_OK) if data else Response(status=status.HTTP_400_BAD_REQUEST)
+
 
     def get_all(self, request: Request) -> Response:
         data: QuerySet[Menu] = self.get_queryset().order_by('id').filter(
