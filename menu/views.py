@@ -25,8 +25,7 @@ class MenuView(CustomAPIView):
         return Response(self.serializer(data).data, status=status.HTTP_200_OK)
 
     def get_all(self, request: Request) -> Response:
-        data: QuerySet[Menu] = self.get_queryset().order_by('name').filter(
-            name__istartswith=request.query_params.get('starts_with', ''),
+        data: QuerySet[Menu] = self.get_queryset().order_by('id').filter(
             description__contains=request.query_params.get('description', '')
         )
 

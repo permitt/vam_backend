@@ -6,5 +6,8 @@ class ClientFacility(SoftDeletableModel):
     name = models.CharField(max_length=50)
     description = models.TextField()
 
+    class Meta:
+        verbose_name_plural = "client facilities"
+
     def __str__(self):
         return self.name

@@ -6,3 +6,4 @@ class ClientFacilitySerializer(ModelSerializer):
     class Meta:
         model = ClientFacility
         fields = '__all__'
+

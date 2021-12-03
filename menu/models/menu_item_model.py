@@ -11,4 +11,4 @@ class MenuItem(SoftDeletableModel):
     item_images = models.ManyToManyField(to=Image, blank=True)
 
     def __str__(self):
-        return  'Menu Item ' + self.name
+        return self.name
