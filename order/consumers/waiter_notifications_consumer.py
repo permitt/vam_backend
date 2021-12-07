@@ -2,30 +2,37 @@ import json
 from typing import Dict
 
 from asgiref.sync import async_to_sync
-from channels.generic.websocket import JsonWebsocketConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.layers import get_channel_layer
 
 
-class WaiterNotificationsConsumer(JsonWebsocketConsumer):
+class WaiterNotificationsConsumer(AsyncJsonWebsocketConsumer):
 
-    def connect(self, *args, **kwargs):
+    async def connect(self, *args, **kwargs):
         waiter_id: str = self.scope['url_route']['kwargs']['waiter_id']
         self.waiter_group = 'waiter_' + waiter_id
-        self.channel_layer.group_add(self.waiter_group, self.channel_name)
-        self.accept()
+        await self.accept()
+        await self.channel_layer.group_add(self.waiter_group, self.channel_name)
 
     def receive_json(self, content, **kwargs):
-        channel_layer = get_channel_layer()
-        channel_layer.send(self.waiter_group, {"PICKO":"MRS"})
-        async_to_sync(channel_layer.group_send)(self.waiter_group, content)
+        self.send_to_group(content)
         self.send_json(content)
 
-    def disconnect(self, code):
-        async_to_sync(self.channel_layer.group_discard)(
+    async def disconnect(self, code):
+        await self.channel_layer.group_discard(
             self.waiter_group,
             self.channel_name
         )
-        self.close()
+        await self.close()
+
+    async def forward_group_message(self, event):
+        print(event, ' stigao')
+        await self.send(json.dumps(event['data'], default=str))
+
+    async def send_to_group(self, message):
+        return self.channel_layer.group_send(self.waiter_group,
+                                                            {"type": "forward.group.message",
+                                                             "data": message})
 
     def order_update(self, event):
         self.send_json(event)

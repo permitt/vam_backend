@@ -34,7 +34,6 @@ class OrderView(CustomAPIView):
         return self.paginator.get_paginated_response(self.serializer(data, many=True).data)
 
     def post(self, request: Request, *args, **kwargs) -> Response:
-        print(request.data)
         serializer = self.serializer(data=request.data)
         if not serializer.is_valid():
             print(serializer.errors)
@@ -44,11 +43,12 @@ class OrderView(CustomAPIView):
 
         channel_layer: RedisChannelLayer = get_channel_layer()
         message: Dict = {"table_name": order.table_order.name, "order_id": order.id.__str__(),
-                         "table_id": order.table_order.table_id.__str__()}
+                         "table_id": order.table_order.table_id.__str__(),
+                         "order_status": "RECEIVED"}
 
         channel_name: str = f'waiter_{order.waiter_assigned_id}'
-        print(channel_name, message)
-        async_to_sync(channel_layer.group_send)(channel_name, message)
-        print(serializer.data)
+        async_to_sync(channel_layer.group_send)(channel_name,
+                                                {"type": "forward.group.message",
+                                                 "data": message})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
