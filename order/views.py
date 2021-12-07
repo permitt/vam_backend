@@ -1,7 +1,12 @@
-from typing import List
+import json
+from typing import List, Dict
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from channels_redis.core import RedisChannelLayer
 from django.db.models import QuerySet
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from order.models.order_model import Order
 from order.serializers.order_serializer import OrderSerializer
@@ -23,7 +28,31 @@ class OrderView(CustomAPIView):
         return Response(self.serializer(data).data, status=status.HTTP_200_OK)
 
     def get_all(self, request: Request) -> Response:
-        data: QuerySet[Order] = self.get_queryset().order_by('name')
+        data: QuerySet[Order] = self.get_queryset().order_by('id')
 
         data: List[Order] = self.paginator.paginate_queryset(data, request)
         return self.paginator.get_paginated_response(self.serializer(data, many=True).data)
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        print(request.data)
+        serializer = self.serializer(data=request.data)
+        if not serializer.is_valid():
+            print(serializer.errors)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        order: Order = serializer.save()
+        print('view:' ,order.order_items.count())
+        print(serializer.data)
+
+        channel_layer: RedisChannelLayer = get_channel_layer()
+        message: Dict = {"table_name": order.table_order.name, "order_id": order.id,
+                         "table_id": order.table_order.table_id}
+
+        #message: Dict = {"table_name": "bast-lijevo-1", "order_id": order.id,
+        #                                  "table_id": "1"}
+
+        channel_name: str = f'waiter_{order.waiter_assigned_id}'
+        async_to_sync(channel_layer.group_send(channel_name, message))
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+

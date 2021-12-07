@@ -13,3 +13,6 @@ class Table(SoftDeletableModel):
     number = models.IntegerField()
     assigned_to = models.ForeignKey(to=Waiter, on_delete=models.DO_NOTHING)
     facility = models.ForeignKey(to=ClientFacility, on_delete=models.DO_NOTHING)
+
+    def __str__(self):
+        return self.name
