@@ -50,5 +50,5 @@ class OrderView(CustomAPIView):
         async_to_sync(channel_layer.group_send)(channel_name,
                                                 {"type": "forward.group.message",
                                                  "data": message})
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(self.serializer(order).data, status=status.HTTP_201_CREATED)
 

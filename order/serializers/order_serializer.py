@@ -10,7 +10,7 @@ class OrderSerializer(ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ('table_order', 'waiter_assigned', 'order_items')
+        fields = ('id', 'table_order', 'waiter_assigned', 'order_items')
 
     def create(self, validated_data):
         print(validated_data)
