@@ -5,6 +5,8 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from channels_redis.core import RedisChannelLayer
 from django.db.models import QuerySet
+import json
+from django.core.serializers.json import DjangoJSONEncoder
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -42,9 +44,10 @@ class OrderView(CustomAPIView):
         order: Order = serializer.create(serializer.validated_data)
 
         channel_layer: RedisChannelLayer = get_channel_layer()
-        message: Dict = {"table_name": order.table_order.name, "order_id": order.id.__str__(),
-                         "table_id": order.table_order.table_id.__str__(),
-                         "order_status": "RECEIVED"}
+        message: Dict = {"table_name": order.table_order.name, "id": order.id.__str__(),
+                         "table": order.table_order.table_id.__str__(),
+                         "date": json.dumps(order.date, cls=DjangoJSONEncoder),
+                         "status": "RECEIVED"}
 
         channel_name: str = f'waiter_{order.waiter_assigned_id}'
         async_to_sync(channel_layer.group_send)(channel_name,
