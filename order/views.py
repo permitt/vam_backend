@@ -30,7 +30,7 @@ class OrderView(CustomAPIView):
         return Response(self.serializer(data).data, status=status.HTTP_200_OK)
 
     def get_all(self, request: Request) -> Response:
-        data: QuerySet[Order] = self.get_queryset().order_by('id')
+        data: QuerySet[Order] = self.get_queryset().order_by('-date')
 
         data: List[Order] = self.paginator.paginate_queryset(data, request)
         return self.paginator.get_paginated_response(self.serializer(data, many=True).data)
