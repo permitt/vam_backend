@@ -12,12 +12,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from order.models.order_model import Order
 from order.serializers.order_serializer import OrderSerializer
+from shared.enums.order_status_enum import OrderStatus
 from shared.models.custom_api_view import CustomAPIView
 
 
 class OrderView(CustomAPIView):
     model = Order
     serializer = OrderSerializer
+    channel_layer: RedisChannelLayer = get_channel_layer()
 
     def get(self, request: Request, *args, **kwargs) -> Response:
         if 'id' in kwargs:
@@ -35,6 +37,31 @@ class OrderView(CustomAPIView):
         data: List[Order] = self.paginator.paginate_queryset(data, request)
         return self.paginator.get_paginated_response(self.serializer(data, many=True).data)
 
+    def put(self, request: Request, *args, **kwargs) -> Response:
+        obj_id: int = kwargs.get('id', -1)
+        instance = self.model.non_deleted_objects.get(obj_id)
+
+        if instance is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.serializer(instance, data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
+
+        message: Dict = {"table_name": instance.table_order.name, "id": instance.id.__str__(),
+                         "table": instance.table_order.table_id.__str__(),
+                         "date": json.dumps(instance.date, cls=DjangoJSONEncoder),
+                         "status": instance.status}
+
+        channel_name: str = f'order_{instance.id}'
+        async_to_sync(self.channel_layer.group_send)(channel_name,
+                                                     {"type": "forward.group.message",
+                                                      "data": message})
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def post(self, request: Request, *args, **kwargs) -> Response:
         serializer = self.serializer(data=request.data)
         if not serializer.is_valid():
@@ -43,15 +70,13 @@ class OrderView(CustomAPIView):
 
         order: Order = serializer.create(serializer.validated_data)
 
-        channel_layer: RedisChannelLayer = get_channel_layer()
         message: Dict = {"table_name": order.table_order.name, "id": order.id.__str__(),
                          "table": order.table_order.table_id.__str__(),
                          "date": json.dumps(order.date, cls=DjangoJSONEncoder),
-                         "status": "RECEIVED"}
+                         "status": OrderStatus.RECEIVED}
 
         channel_name: str = f'waiter_{order.waiter_assigned_id}'
-        async_to_sync(channel_layer.group_send)(channel_name,
-                                                {"type": "forward.group.message",
-                                                 "data": message})
+        async_to_sync(self.channel_layer.group_send)(channel_name,
+                                                     {"type": "forward.group.message",
+                                                      "data": message})
         return Response(self.serializer(order).data, status=status.HTTP_201_CREATED)
-
