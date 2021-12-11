@@ -44,7 +44,7 @@ class OrderView(CustomAPIView):
         if instance is None:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        instance.status = OrderStatus(instance.status.value + 1)
+        instance.status = OrderStatus(OrderStatus(instance.status).value + 1)
         instance.save()
 
         message: Dict = {"table_name": instance.table_order.name, "id": instance.id.__str__(),
