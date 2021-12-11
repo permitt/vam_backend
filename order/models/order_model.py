@@ -14,4 +14,3 @@ class Order(SoftDeletableModel):
         choices=OrderStatus.choices,
         default=OrderStatus.RECEIVED,
     )
-

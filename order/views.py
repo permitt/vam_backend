@@ -39,16 +39,13 @@ class OrderView(CustomAPIView):
 
     def put(self, request: Request, *args, **kwargs) -> Response:
         obj_id: int = kwargs.get('id', -1)
-        instance = self.model.non_deleted_objects.get(obj_id)
+        instance: Order = self.model.non_deleted_objects.get(obj_id)
 
         if instance is None:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = self.serializer(instance, data=request.data)
-        if not serializer.is_valid(raise_exception=False):
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        serializer.save()
+        instance.status = OrderStatus(instance.status.value + 1)
+        instance.save()
 
         message: Dict = {"table_name": instance.table_order.name, "id": instance.id.__str__(),
                          "table": instance.table_order.table_id.__str__(),
@@ -60,7 +57,7 @@ class OrderView(CustomAPIView):
                                                      {"type": "forward.group.message",
                                                       "data": message})
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK)
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         serializer = self.serializer(data=request.data)

@@ -13,7 +13,6 @@ class OrderSerializer(ModelSerializer):
         fields = ('id', 'table_order', 'waiter_assigned', 'order_items', 'date', 'status')
 
     def create(self, validated_data):
-        print(validated_data)
         order_items_data = validated_data.pop('order_items')
         order: Order = Order.objects.create(**validated_data)
         order_item_serializer = self.fields['order_items']
